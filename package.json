@@ -1,0 +1,8 @@
+{
+  "name": "tetris.io",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/FelipeColona/Tetris.io.git",
+  "author": "FelipeColona <72169708+FelipeColona@users.noreply.github.com>",
+  "license": "MIT"
+}
