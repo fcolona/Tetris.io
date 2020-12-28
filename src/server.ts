@@ -8,7 +8,7 @@ export default server
 
 import routes from './routes'
 
-app.use(express.static(path.join(__dirname, 'views')))
+app.use(express.static(path.join(__dirname, '/public')))
 app.set('views', path.join(__dirname, '/public/views'))
 app.engine('html', require('ejs').renderFile)
 app.set('view engine', 'html')
