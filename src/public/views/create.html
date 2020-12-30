@@ -4,19 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Private Room</title>
-
-    <div id="space"></div> <br>
-    <button onclick="copyToClipboard()">Copy</button>
-
-    <div class="chat-messages"></div>
-
-    <input type="text" id="msgInput">
-    <button onclick="sendMessage()">Send</button>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard-polyfill/3.0.1/main/clipboard-polyfill.js"></script>
 </head>
 <body>
+
+    <div id="space" style="position: absolute; bottom: 20px;"></div> <br>
+    <button onclick="copyToClipboard()" style="position: absolute; bottom: 0px;">Copy</button>
+
+    <div class="chat-messages" style="position: absolute; top: 0px; right: 50px;"></div>
+    <input type="text" id="msgInput" style="position: absolute; right: 50px; bottom: 100px;">
+    <button onclick="sendMessage()" style="position: absolute; right: 50px; bottom: 80px;">Send</button>
+
+
+
+    
+    <p style="position: absolute; left: 200px; color: white; font-family: 'Roboto', sans-serif;" id="scoreDiv"></p>
+    <p style="position: absolute; left: 200px; top: 50px; color: white; font-family: 'Roboto', sans-serif;" id="timeDiv"></p>
+
+
+    <p align="center" id="end">
+        <canvas id="grid" width="200" height="400" style="border: 1px solid white;"></canvas>
+        <canvas id="quequeCanvas" width="220" height="480" style="position: absolute; top: 25px; margin-left: 100px;"></canvas>
+    </p>
+
     <script src="../js/create.js"></script>
 </body>
 </html>

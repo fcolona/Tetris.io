@@ -6,6 +6,17 @@ import * as socketIO from 'socket.io'
 //@ts-ignore
 const io: SocketIO.Server = socketIO(server)
 
+interface message{
+    author: string,
+    message: string
+}
+
+interface gameInfo{
+    arena: number[][],
+    pos: {x: number, y: number},
+    matrix: number[][],
+    color: string
+}
 
 routes.get('/', (req: Request, res: Response) => {
     res.render('index.html')
@@ -14,14 +25,27 @@ routes.get('/', (req: Request, res: Response) => {
 routes.post('/create', async (req: Request, res: Response) => {
     res.render('create.html')
 
-    io.on('connection', async (socket: socketIO.Socket) => {
+    io.once('connection', async (socket: socketIO.Socket) => {
         console.log(`Socket: ${socket.id}`)
+        const room = socket.id
 
-        io.in(socket.id).emit('genLink', socket.id)
+        socket.leave(socket.id)
+        socket.join(room)
+
+        io.in(room).emit('genLink', room)
 
         // Listen for the chat message
-        socket.in(socket.id).on('messageClient', msg => {
-            io.in(socket.id).emit('messageServer', {author: 'Felipe', message: msg})
+        socket.in(room).on('messageClient', async (msg: message) => {
+
+        //@ts-ignore
+        let clientsInRoom: Set = await io.in(room).allSockets()
+        let clientsInRoomArray: string[] = Array.from(clientsInRoom)
+
+            io.in(room).emit('messageServer', {author: `Player ${clientsInRoomArray.indexOf(room) + 1}`, message: msg})
+        })
+
+        socket.in(room).on('updateInfoClient', (info: gameInfo) => {
+            io.in(room).emit('updateInfoServer', info)
         })
     })
 })
@@ -33,19 +57,24 @@ routes.get('/join/:room', async (req: Request, res: Response) => {
 
     io.on('connection', async (socket: socketIO.Socket) => {
         //@ts-ignore
-        const clientsInRoom: Set = await io.in(room).allSockets()
-        const clientsInRoomArray: string[] = Array.from(clientsInRoom)
+        let clientsInRoom: Set = await io.in(room).allSockets()
+        let clientsInRoomArray: string[] = Array.from(clientsInRoom)
 
         if(clientsInRoomArray.length === 2){
             console.log('The room is full!')
         }else{
             socket.leave(socket.id)
             socket.join(room)
-            io.sockets.in(room).emit('messageServer', {author: 'Bot', message: `Player ${clientsInRoomArray.indexOf(socket.id) + 1} has entered the chat...`})
+            io.sockets.in(room).emit('messageServer', {author: 'Bot', message: `Player ${clientsInRoomArray.length + 1} has entered the chat...`})
         }
 
-        socket.in(room).on('messageClient', msg => {
-            io.in(room).emit('messageServer', {author: 'Felipe', message: msg})
+        socket.in(room).on('messageClient', async (msg: message) => {
+
+        //@ts-ignore
+        let clientsInRoom: Set = await io.in(room).allSockets()
+        let clientsInRoomArray: string[] = Array.from(clientsInRoom)
+
+            io.in(room).emit('messageServer', {author: `Player ${clientsInRoomArray.indexOf(socket.id) + 1}`, message: msg})
         })
     })
 })
