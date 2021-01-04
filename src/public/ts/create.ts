@@ -1,10 +1,7 @@
 //@ts-ignore
 const socket: SocketIO.Socket = io();
 
-interface message{
-    author: string,
-    message: string
-}
+import { message, gameInfo } from '../../typings'
 
 const space = <HTMLDivElement>document.querySelector('#space')
 
@@ -19,7 +16,7 @@ function copyToClipboard() {
     })
 }
 
-//@ts-ignore
+
 function outputMessage(msg: message) {
     console.log(msg)
 
@@ -28,7 +25,7 @@ function outputMessage(msg: message) {
     document.querySelector('.chat-messages')!.appendChild(div)
 }
 
-//@ts-ignore
+
 function sendMessage() {
     const messageText = document!.querySelector('#msgInput')
 
@@ -39,14 +36,59 @@ function sendMessage() {
 
 
 socket.on('genLink', (id: string) => {
-    space.innerHTML = `localhost:3000/join/${id}`
-    space.setAttribute('value', `localhost:3000/join/${id}`)
+    const currentURL = `${window.location.href}`.split('/')[2]
+    space.innerHTML = `${currentURL}/join/${id}`
+    space.setAttribute('value', `${currentURL}/join/${id}`)
 })
 
 socket.on('messageServer', (msg: message) => {
     outputMessage(msg)
 })
 
+
+const canvasIO = <HTMLCanvasElement>document.querySelector('#gridIO')
+const contextIO = canvasIO.getContext('2d')
+
+contextIO?.scale(20, 20)
+contextIO!.fillStyle = '#454a4d'
+contextIO?.fillRect(0, 0, canvasIO.width, canvasIO.height)
+
+function createArenaIO(arena: number[][]) {
+    arena.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value > 0) {
+                //@ts-ignore
+                contextIO!.fillStyle = `${colors[value]}`
+                contextIO?.fillRect(x, y, 1, 1)
+            } else if (value < 0) {
+                //@ts-ignore
+                contextIO!.fillStyle = `rgba(${negativeColor[`${value}`]}, 0.5)`
+                contextIO?.fillRect(x, y, 1, 1)
+            } else {
+                contextIO!.fillStyle = '#454a4d'
+                contextIO?.fillRect(x, y, 1, 1)
+            }
+        })
+    })
+}
+
+function drawMatrixIO(matrix: number[][], color: string, offset: { x: number, y: number }) {
+    matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                contextIO!.fillStyle = color
+                contextIO?.fillRect(x + offset.x, y + offset.y, 1, 1)
+            }
+        })
+    })
+}
+
+socket.on('updateInfoServer', (info: gameInfo) => {
+    const {arena, pos, matrix, color } = info
+
+    createArenaIO(arena)
+    drawMatrixIO(matrix, color, pos)
+})
 
 /*//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// */
 
@@ -57,7 +99,7 @@ context?.scale(20, 20)
 context!.fillStyle = '#454a4d'
 context?.fillRect(0, 0, canvas.width, canvas.height)
 
-const arena = [
+let arena = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -290,6 +332,17 @@ let lastTime = 0
 
 let testa = false
 
+let animationId: number;
+let isTesting = false
+
+function swicthTesting(){
+    if(isTesting){
+        isTesting = false
+    }else{
+        isTesting = true
+    }
+}
+
 function update(time = 0) {
 
     socket.emit('updateInfoClient', {arena: arena, pos: player.pos, matrix: player.matrix, color: player.color})
@@ -342,7 +395,8 @@ Time: ${timeString.substring(0, 1)}.${timeString.substring(1, 3)}
     preview()
 
     draw()
-    requestAnimationFrame(update)
+
+    animationId = requestAnimationFrame(update)
 }
 
 
@@ -708,8 +762,15 @@ function gameOver(){
     if (Number(localStorage.getItem('bestScore')) < player.score) {
         localStorage.setItem('bestScore', `${player.score}`)
     }
-    end!.innerHTML = `GAME OVER! Score: ${player.score}`
-    scoreDiv!.innerHTML = `Best Score: ${localStorage.getItem('bestScore')}`
+    cancelAnimationFrame(animationId)
+/*     end!.innerHTML = `GAME OVER! Score: ${player.score}`
+    scoreDiv!.innerHTML = `Best Score: ${localStorage.getItem('bestScore')}` */
+
+
+    /*
+    var id = requestAnimationFrame(cache.mechanism.snowFall);
+    cancelAnimationFrame(update)
+    */
 }
 
 
@@ -792,8 +853,42 @@ function changeValue(row: number[], paramValue: number){
     return rowToBeReturned
 }
 
-update()
-setInterval( function(){
+socket.on('refreshRoomStatusServer', (clientsInRoomArray: string[]) => {
+    socket.emit('refreshRoomStatusClient', clientsInRoomArray)
+})
+
+socket.on('startGame', (empty: {}) => {
+    update()
+})
+
+function restart(){
+    arena = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ]
+
+    update()
+}
+
+/* setInterval( function(){
     const temp = arena
     let tempFirstLine = arena[arena.length - 1]
 
@@ -809,4 +904,4 @@ setInterval( function(){
     })
 
     arena[arena.length - 1] = changeValue(tempFirstLine, 9)
-}, 30000)
+}, 30000) */

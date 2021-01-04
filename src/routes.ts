@@ -6,17 +6,7 @@ import * as socketIO from 'socket.io'
 //@ts-ignore
 const io: SocketIO.Server = socketIO(server)
 
-interface message{
-    author: string,
-    message: string
-}
-
-interface gameInfo{
-    arena: number[][],
-    pos: {x: number, y: number},
-    matrix: number[][],
-    color: string
-}
+import { message, gameInfo } from './typings'
 
 routes.get('/', (req: Request, res: Response) => {
     res.render('index.html')
@@ -34,6 +24,16 @@ routes.post('/create', async (req: Request, res: Response) => {
 
         io.in(room).emit('genLink', room)
 
+        //@ts-ignore
+        let clientsInRoom: Set = await io.in(room).allSockets()
+        let clientsInRoomArray: string[] = Array.from(clientsInRoom)
+
+        socket.in(room).on('refreshRoomStatusClient', (refreshedStatus: string[]) => {
+            if(refreshedStatus.length > 1){
+                io.in(room).emit('startGame', {})
+            } 
+        })
+
         // Listen for the chat message
         socket.in(room).on('messageClient', async (msg: message) => {
 
@@ -45,7 +45,7 @@ routes.post('/create', async (req: Request, res: Response) => {
         })
 
         socket.in(room).on('updateInfoClient', (info: gameInfo) => {
-            io.in(room).emit('updateInfoServer', info)
+            socket.to(room).emit('updateInfoServer', info)
         })
     })
 })
@@ -55,7 +55,9 @@ routes.get('/join/:room', async (req: Request, res: Response) => {
 
     const {room} = req.params
 
-    io.on('connection', async (socket: socketIO.Socket) => {
+    io.once('connection', async (socket: socketIO.Socket) => {
+        console.log(`Socket: ${socket.id}`)
+
         //@ts-ignore
         let clientsInRoom: Set = await io.in(room).allSockets()
         let clientsInRoomArray: string[] = Array.from(clientsInRoom)
@@ -65,7 +67,13 @@ routes.get('/join/:room', async (req: Request, res: Response) => {
         }else{
             socket.leave(socket.id)
             socket.join(room)
-            io.sockets.in(room).emit('messageServer', {author: 'Bot', message: `Player ${clientsInRoomArray.length + 1} has entered the chat...`})
+
+            //@ts-ignore
+            let clientsInRoom: Set = await io.in(room).allSockets()
+            let clientsInRoomArray: string[] = Array.from(clientsInRoom)
+            io.sockets.in(room).emit('refreshRoomStatusServer', clientsInRoomArray)
+
+            io.sockets.in(room).emit('messageServer', {author: 'Bot', message: `Player ${clientsInRoomArray.length} has entered the chat...`})
         }
 
         socket.in(room).on('messageClient', async (msg: message) => {
@@ -75,6 +83,10 @@ routes.get('/join/:room', async (req: Request, res: Response) => {
         let clientsInRoomArray: string[] = Array.from(clientsInRoom)
 
             io.in(room).emit('messageServer', {author: `Player ${clientsInRoomArray.indexOf(socket.id) + 1}`, message: msg})
+        })
+
+        socket.in(room).on('updateInfoClient', (info: gameInfo) => {
+            socket.to(room).emit('updateInfoServer', info)
         })
     })
 })
