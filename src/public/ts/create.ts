@@ -9,17 +9,11 @@ function copyToClipboard() {
     const textToBeCopied = space.getAttribute('value')
 
     //@ts-ignore
-    clipboard.writeText(textToBeCopied).then(() => {
-
-    }).cacth((err: Error) => {
-        console.log(err)
-    })
+    clipboard.writeText(textToBeCopied)
 }
 
 
 function outputMessage(msg: message) {
-    console.log(msg)
-
     const div = document.createElement('div')
     div.innerHTML = `<p> ${msg.author}: ${msg.message}</p>`
     document.querySelector('.chat-messages')!.appendChild(div)
@@ -137,6 +131,8 @@ contextQuequeCanvas?.scale(23, 23)
 contextQuequeCanvas!.fillStyle = '#181a1b'
 contextQuequeCanvas?.fillRect(0, 0, quequeCanvas.width, quequeCanvas.height)
 
+let animationId: number;
+
 let quequeArena = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -237,8 +233,6 @@ function merge() {
     arenaSweep()
 }
 
-let test = false
-
 function collide() {
     let alteredOne = false
     let alteredTwo = false
@@ -285,14 +279,6 @@ function collide() {
     return false
 }
 
-function testing() {
-    if (!test) {
-        test = true
-    } else {
-        test = false
-    }
-}
-
 function collideParams(pos: { x: number, y: number }) {
     const [m, o] = [player.matrix, pos]
 
@@ -330,9 +316,6 @@ let dropInterval = 1000
 
 let lastTime = 0
 
-let testa = false
-
-let animationId: number;
 let isTesting = false
 
 function swicthTesting(){
@@ -348,7 +331,7 @@ function update(time = 0) {
     socket.emit('updateInfoClient', {arena: arena, pos: player.pos, matrix: player.matrix, color: player.color})
 
     scoreDiv.innerHTML = `Score: ${player.score}`
-    let timeString = `${time}`
+/*     let timeString = `${time}`
     
     if(time < 1000){
         timeDiv.innerHTML = `Time: 0.${timeString.substring(0, 3)}`
@@ -361,7 +344,7 @@ function update(time = 0) {
     }
     if(timeString.substring(0, 5) === '60000' || timeString.substring(0, 6) === '120000' || timeString.substring(0, 6) === '180000'){
         console.log('One minute has passed!')
-    }
+    } */
 
 /* 
 
@@ -399,6 +382,25 @@ Time: ${timeString.substring(0, 1)}.${timeString.substring(1, 3)}
     animationId = requestAnimationFrame(update)
 }
 
+socket.on('finishedServer', (empty: {}) => {
+    cancelAnimationFrame(animationId)
+    
+    canvas.style.display = 'none'
+    contextQuequeCanvas!.fillStyle = '#181a1b'
+    contextQuequeCanvas?.fillRect(0, 0, quequeCanvas.width, quequeCanvas.height)
+    const victoryH2 = document.createElement('h2')
+    victoryH2.setAttribute('id', 'victoryH2')
+    victoryH2.innerHTML = 'YOU WIN!'
+    end!.appendChild(victoryH2)
+
+    const restartTrigger = document.createElement('button')
+    restartTrigger.innerHTML = 'Restart'
+    restartTrigger.setAttribute('id', 'restartTrigger')
+    end!.appendChild(restartTrigger)
+    restartTrigger.addEventListener('click', () => {
+        socket.emit('restartClient', {})
+    })
+})
 
 const colors = {
     1: 'blue',
@@ -763,6 +765,32 @@ function gameOver(){
         localStorage.setItem('bestScore', `${player.score}`)
     }
     cancelAnimationFrame(animationId)
+
+    if(document.getElementById('victoryH2') === null){
+        socket.emit('finishedClient', {})
+
+        canvas.style.display = 'none'
+        contextQuequeCanvas!.fillStyle = '#181a1b'
+        contextQuequeCanvas?.fillRect(0, 0, quequeCanvas.width, quequeCanvas.height)
+        const victoryH2 = document.createElement('h2')
+        victoryH2.setAttribute('id', 'victoryH2')
+        victoryH2.innerHTML = 'YOU LOST!'
+        end!.appendChild(victoryH2)
+        cancelAnimationFrame(animationId)
+    
+        const restartTrigger = document.createElement('button')
+        restartTrigger.innerHTML = 'Restart'
+        restartTrigger.setAttribute('id', 'restartTrigger')
+        end!.appendChild(restartTrigger)
+        restartTrigger.addEventListener('click', () => {
+            socket.emit('restartClient', {})
+        })
+    }
+    
+
+
+
+
 /*     end!.innerHTML = `GAME OVER! Score: ${player.score}`
     scoreDiv!.innerHTML = `Best Score: ${localStorage.getItem('bestScore')}` */
 
@@ -780,6 +808,8 @@ function mergeParams(xPos: number, yPos: number) {
             if (value !== 0) {
                 if (arena[y + yPos - 1] === undefined) {
                     gameOver()
+                    
+                    return 0
                 }
                 if (arena[y + yPos - 1]) {
 
@@ -787,7 +817,7 @@ function mergeParams(xPos: number, yPos: number) {
                 //@ts-ignore
                 arena[y + yPos - 1][x + xPos] = -colors[player.color]
             }
-        })
+        })  
     })
 }
 
@@ -861,7 +891,7 @@ socket.on('startGame', (empty: {}) => {
     update()
 })
 
-function restart(){
+socket.on('restartServer', (empty: {}) => {
     arena = [
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -885,8 +915,25 @@ function restart(){
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]
 
+    canvas.style.display = 'inherit'
+    quequeCanvas.style.marginLeft = '200px'
+    
+    player.setMatrix()
+
+    let victoryH2 = document.querySelector('#victoryH2')
+    if(victoryH2 !== null){
+        victoryH2?.parentNode?.removeChild(victoryH2)
+    }
+
+    let restartTrigger = document.querySelector('#restartTrigger')
+    if(restartTrigger !== null){
+        restartTrigger?.parentNode?.removeChild(restartTrigger)
+    }
+
     update()
-}
+})
+
+
 
 /* setInterval( function(){
     const temp = arena

@@ -47,6 +47,13 @@ routes.post('/create', async (req: Request, res: Response) => {
         socket.in(room).on('updateInfoClient', (info: gameInfo) => {
             socket.to(room).emit('updateInfoServer', info)
         })
+
+        socket.in(room).on('finishedClient', (empty: {}) => {
+            socket.to(room).emit('finishedServer', {})
+        })
+        socket.in(room).on('restartClient', (empty: {}) => {
+            io.in(room).emit('restartServer', {})
+        })
     })
 })
 
@@ -87,6 +94,10 @@ routes.get('/join/:room', async (req: Request, res: Response) => {
 
         socket.in(room).on('updateInfoClient', (info: gameInfo) => {
             socket.to(room).emit('updateInfoServer', info)
+        })
+
+        socket.in(room).on('finishedClient', (empty: {}) => {
+            socket.to(room).emit('finishedServer', {})
         })
     })
 })
